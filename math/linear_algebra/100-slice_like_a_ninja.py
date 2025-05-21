@@ -1,37 +1,26 @@
 #!/usr/bin/env python3
+"""This module provides functions for slicing arrays or lists in specific ways.
+   The main functionality is to demonstrate how to slice like a 'ninja'.
 """
-Slice numpy arrays
-"""
-import numpy as np
 
 
-def np_slice(matrix, axes=None):
-    """Slices a matrix along specific axes
+def np_slice(matrix, axes={}):
+    """Slices the array from the start index to the end index.
 
-    Args:
-        matrix (numpy.ndarray): matrix to slice
-        axes (dict): dictionary where the key is an axis to slice along and
-                     the value is a tuple representing the slice to make along
-                     that axis
+    Parameters:
+    array (np.ndarray or list): The array or list to slice.
+    start (int): The starting index.
+    end (int): The ending index.
 
     Returns:
-        numpy.ndarray: the sliced matrix
+    np.ndarray or list: The sliced array.
     """
-    if axes is None:
-        return matrix[...]
-    slices = []
-    for i in range(matrix.ndim):
-        if i in axes:
-            slices.append(slice(*axes[i]))
-        else:
-            slices.append(slice(None))
+    # Create a list of slice objects, one for each dimension of the matrix
+    slices = [slice(None)] * matrix.ndim
+
+    # Update the slices based on the provided axes dictionary
+    for axis, slice_info in axes.items():
+        slices[axis] = slice(*slice_info)
+
+    # Apply the slices to the matrix
     return matrix[tuple(slices)]
-  
-mat1 = np.array([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]])
-print(np_slice(mat1, axes={1: (1, 3)}))
-print(mat1)
-# mat2 = np.array([[[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]],
-#                  [[11, 12, 13, 14, 15], [16, 17, 18, 19, 20]],
-#                  [[21, 22, 23, 24, 25], [26, 27, 28, 29, 30]]])
-# print(np_slice(mat2, axes={0: (2,), 2: (None, None, -2)}))
-# print(mat2)
