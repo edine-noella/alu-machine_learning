@@ -26,3 +26,4 @@ if __name__ == '__main__':
     print(regular(c))
     print(regular(d))
     print(regular(e))
+    

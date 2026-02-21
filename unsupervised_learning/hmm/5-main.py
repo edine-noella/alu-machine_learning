@@ -27,3 +27,4 @@ if __name__ == '__main__':
     P, B = backward(Observations, Emission, Transition, Initial.reshape((-1, 1)))
     print(P)
     print(B)
+    

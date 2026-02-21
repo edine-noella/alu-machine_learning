@@ -27,3 +27,4 @@ if __name__ == '__main__':
     path, P = viterbi(Observations, Emission, Transition, Initial.reshape((-1, 1)))
     print(P)
     print(path)
+    

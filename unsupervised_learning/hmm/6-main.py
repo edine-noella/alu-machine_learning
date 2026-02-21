@@ -24,3 +24,4 @@ if __name__ == '__main__':
     T, E = baum_welch(Observations, T_test, E_test, Initial.reshape((-1, 1)))
     print(np.round(T, 2))
     print(np.round(E, 2))
+    

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-"""
-5. Bayesian Optimization
+"""[summary]
+
+Returns:
+    [type]: [description]
 """
 import numpy as np
 from scipy.stats import norm
@@ -8,80 +10,74 @@ GP = __import__('2-gp').GaussianProcess
 
 
 class BayesianOptimization:
-    """
-    Performs Bayesian optimization on a noiseless 1D Gaussian process
+    """[summary]
     """
 
-    def __init__(self, f, X_init, Y_init, bounds, ac_samples, l=1,
-                 sigma_f=1, xsi=0.01, minimize=True):
-        """
-        Class constructor
+    def __init__(self, f, X_init, Y_init, bounds, ac_samples,
+                 l=1, sigma_f=1, xsi=0.01, minimize=True):
+        """[summary]
+
         Args:
-            f: black-box function to be optimized
-            X_init: np.ndarray - (t, 1) - inputs already sampled with the
-                black-box function
-            Y_init: np.ndarray - (t, 1) - outputs of the black-box function
-                for each input in X_init
-            bounds: tuple (min, max) - bounds of the space in which to look
-                for the optimal point
-            ac_samples: number of samples that should be analyzed during
-                acquisition
-            l: length parameter for the kernel
-            sigma_f: standard deviation given to the output of the
-                black-box function
-            xsi: exploration-exploitation factor for acquisition
-            minimize: bool determining whether optimization should be
-                performed for minimization (True) or maximization (False)
+            f ([type]): [description]
+            X_init ([type]): [description]
+            Y_init ([type]): [description]
+            bounds ([type]): [description]
+            ac_samples ([type]): [description]
+            l (int, optional): [description]. Defaults to 1.
+            sigma_f (int, optional): [description]. Defaults to 1.
+            xsi (float, optional): [description]. Defaults to 0.01.
+            minimize (bool, optional): [description]. Defaults to True.
         """
-        MIN, MAX = bounds
-
         self.f = f
-        self.gp = GP(X_init, Y_init, l=l, sigma_f=sigma_f)
-        self.X_s = np.linspace(MIN, MAX, num=ac_samples)[..., np.newaxis]
+        self.gp = GP(X_init, Y_init, l, sigma_f)
+        b_min, b_max = bounds
+        self.X_s = np.linspace(b_min, b_max, ac_samples).reshape(-1, 1)
         self.xsi = xsi
         self.minimize = minimize
 
-    def acquisition(self):
-        """
-        Calculates the next best sample location
-        Uses the Expected Improvement acquisition function
-        Returns: X_next, EI
-        """
-        mu, _ = self.gp.predict(self.gp.X)
-        sample_mu, sigma = self.gp.predict(self.X_s)
-
-        if self.minimize:
-            opt_mu = np.min(mu)
-        else:
-            opt_mu = np.max(mu)
-
-        imp = opt_mu - sample_mu - self.xsi
-        Z = imp / sigma
-        EI = ((imp * norm.cdf(Z)) + (sigma * norm.pdf(Z)))
-        EI[sigma == 0.0] = 0.0
-
-        X_next = self.X_s[np.argmax(EI)]
-
-        return X_next, np.array(EI)
-
     def optimize(self, iterations=100):
-        """
-        Optimizes the black-box function
+        """[summary]
+
         Args:
-            iterations: maximum number of iterations to perform
+            iterations (int, optional): [description]. Defaults to 100.
 
-        Returns: X_opt, Y_opt
+        Returns:
+            [type]: [description]
         """
+        GP = self.gp
         for i in range(iterations):
-            X_next, _ = self.acquisition()
-
-            if X_next in self.gp.X:
+            X_new, EI = self.acquisition()
+            X = self.gp.X
+            if (X_new == X).any():
+                GP.X = GP.X[:-1]
                 break
+            Y_new = self.f(X_new)
+            GP.update(X_new, Y_new)
+        if self.minimize:
+            idx = np.argmin(GP.Y)
+        else:
+            idx = np.argmax(GP.Y)
+        return GP.X[idx], GP.Y[idx]
 
-            Y = self.f(X_next)
-            self.gp.update(X_next, Y)
+    def acquisition(self):
+        """[summary]
 
-        idx = np.argmin(self.gp.Y)
-        X_opt = self.gp.X[idx]
-        Y_opt = np.array(self.gp.Y[idx])
-        return X_opt, Y_opt
+        Returns:
+            [type]: [description]
+        """
+        mu, sigma = self.gp.predict(self.X_s)
+        mu = mu.reshape(-1, 1)
+        sigma = sigma.reshape(-1, 1)
+        if self.minimize:
+            min_val = np.min(self.gp.Y)
+            num = min_val - mu - self.xsi
+        else:
+            max_val = np.max(self.gp.Y)
+            num = mu - max_val - self.xsi
+        Z = num.astype(float) / sigma.astype(float)
+        Z[Z == np.inf] = 0
+        cdf_Z = norm.cdf(Z)
+        pdf_Z = norm.pdf(Z)
+        EI = num * cdf_Z + sigma * pdf_Z
+        best_X = self.X_s[np.argmax(EI)]
+        return best_X, EI.reshape(-1)
